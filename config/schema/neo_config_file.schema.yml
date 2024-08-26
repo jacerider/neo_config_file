@@ -1,0 +1,33 @@
+neo_config_file.neo_config_file.*:
+  type: config_entity
+  label: Config File
+  mapping:
+    uuid:
+      type: string
+    id:
+      type: string
+      label: ID
+    uid:
+      type: string
+      label: User
+    file:
+      type: label
+      label: 'File'
+    uri:
+      type: string
+      label: URI
+    parent_type:
+      type: string
+      label: 'Parent entity type'
+    parent_id:
+      type: string
+      label: 'Parent entity id'
+    parent_field:
+      type: string
+      label: 'Parent field'
+    changed:
+      type: string
+      label: 'Changed'
+    dependents:
+      type: config_dependencies
+      label: 'Dependents'

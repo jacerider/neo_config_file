@@ -1,0 +1,23 @@
+{
+  "name": "jacerider/neo_config_file",
+  "description": "Provides the ability to store files in config.",
+  "type": "drupal-module",
+  "license": "proprietary",
+  "homepage": "https://github.com/jacerider/neo_config_file",
+  "authors": [
+    {
+      "name": "Cyle Carlson (JaceRider)",
+      "email": "jacerider@gmail.com",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/jacerider/neo_config_file/issues",
+    "source": "https://github.com/jacerider/neo_config_file"
+  },
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/core": "^10.3",
+    "jacerider/neo": "^1.0"
+  }
+}

@@ -1,0 +1,15 @@
+entity.neo_config_file.collection:
+  path: '/admin/config/neo/config-file'
+  defaults:
+    _entity_list: 'neo_config_file'
+    _title: 'Config Files'
+  requirements:
+    _permission: 'administer neo_config_file'
+
+system.config:
+  path: '/system/config'
+  defaults:
+    _controller: '\Drupal\system\FileDownloadController::download'
+    scheme: config
+  requirements:
+    _access: 'TRUE'

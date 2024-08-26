@@ -1,0 +1,5 @@
+entity.neo_config_file.overview:
+  title: Config Files
+  parent: system.admin_config_neo
+  description: 'List of config files.'
+  route_name: entity.neo_config_file.collection

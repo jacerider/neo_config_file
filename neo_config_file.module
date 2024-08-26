@@ -1,0 +1,105 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for neo Config File module.
+ */
+
+use Drupal\Core\Config\InstallStorage;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\neo_config_file\ConfigFileInterface;
+use Drupal\file\FileInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function neo_config_file_theme() {
+  return [
+    'neo_config_file_link' => [
+      'variables' => ['file' => NULL, 'description' => NULL, 'attributes' => []],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function neo_config_file_file_insert(FileInterface $entity) {
+  $uri = $entity->getFileUri();
+  if (strpos($uri, ConfigFileInterface::PUBLIC_URI . '/') === 0) {
+    /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
+    $storage = \Drupal::entityTypeManager()->getStorage('neo_config_file');
+    if (!$storage->loadByFile($entity)) {
+      $storage->createFromFile($entity)->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_predelete().
+ */
+function neo_config_file_file_predelete(FileInterface $entity) {
+  $uri = $entity->getFileUri();
+  if (strpos($uri, ConfigFileInterface::PUBLIC_URI . '/') === 0 && empty($entity->neoConfigFileDelete)) {
+    /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
+    $storage = \Drupal::entityTypeManager()->getStorage('neo_config_file');
+    if ($config_file = $storage->loadByFile($entity)) {
+      $config_file->neoConfigFileDelete = TRUE;
+      $config_file->delete();
+    }
+  }
+}
+
+/**
+ * Implements hook_module_preinstall().
+ */
+function neo_config_file_module_preinstall($module) {
+  $path = \Drupal::service('extension.list.module')->getPath($module) . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY . '/files';
+  if (is_dir($path)) {
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    foreach ($file_system->scanDirectory($path, '/.*/') as $file) {
+      $destination = ConfigFileInterface::CONFIG_URI . '/' . $file->filename;
+      $directory = dirname($destination);
+      $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+      $file_system->copy($file->uri, $destination, FileExists::Replace);
+    }
+  }
+}
+
+/**
+ * Prepares variables for file link templates.
+ *
+ * Default template: file-link.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - file: A File entity to which the link will be created.
+ *   - icon_directory: (optional) A path to a directory of icons to be used for
+ *     files. Defaults to the value of the "icon.directory" variable.
+ *   - description: A description to be displayed instead of the filename.
+ *   - attributes: An associative array of attributes to be placed in the a tag.
+ */
+function template_preprocess_neo_config_file_link(&$variables) {
+  $file = $variables['file'];
+  $uri = $file->getFileUri();
+  if (in_array(pathinfo($uri)['extension'], [
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+  ])) {
+    $variables['description'] = [
+      '#theme' => 'image_style',
+      '#style_name' => 'thumbnail',
+      '#uri' => $uri,
+      '#prefix' => '<div>',
+      '#suffix' => '</div>',
+      '#weight' => -100,
+    ];
+  }
+  if (function_exists('template_preprocess_file_link')) {
+    template_preprocess_file_link($variables);
+  }
+}

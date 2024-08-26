@@ -1,0 +1,19 @@
+services:
+  neo_config_file.stream_wrapper:
+    class: Drupal\neo_config_file\StreamWrapper\ConfigFileStream
+    tags:
+      - { name: stream_wrapper, scheme: config }
+  neo_config_file.config_subscriber:
+    class: Drupal\neo_config_file\EventSubscriber\ConfigSubscriber
+    arguments: ['@entity_type.manager', '@cache.neo_config_file', '@neo_config_file.stream_wrapper', '@file_system']
+    tags:
+      - { name: event_subscriber }
+  cache.neo_config_file:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.database.neo_config_file }
+    factory: ['@cache_factory', 'get']
+    arguments: [neo_config_file]
+  cache.backend.database.neo_config_file:
+    class: Drupal\neo_config_file\Cache\DatabaseBackendFactory
+    arguments: ['@database', '@cache_tags.invalidator.checksum', '@settings']
