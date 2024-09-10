@@ -230,7 +230,8 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
     }
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
-    $file_system->prepareDirectory(dirname($destination), FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+    $directory = dirname($destination);
+    $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     try {
       $uri = $file_system->copy($this->getConfigUri(), $destination, FileExists::Replace);
