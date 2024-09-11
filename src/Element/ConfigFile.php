@@ -6,6 +6,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Render\Element;
 use Drupal\neo_config_file\ConfigFileInterface;
 use Drupal\file\Element\ManagedFile;
@@ -69,20 +70,35 @@ class ConfigFile extends ManagedFile {
       }
     }
 
-    // $field_name = end($element['#parents']);
     $form_state->setTemporaryValue([
       'neo_config_file_field_names',
       implode('][', $element['#array_parents']),
     ], $element['#array_parents']);
 
-    // Add global submit handler.
-    $submit_handler_exists = array_filter($complete_form['actions']['submit']['#submit'], function ($submit) {
-      return is_array($submit) && isset($submit[1]) && $submit[1] === 'neoConfigFilesSubmit';
-    });
-    if (!$submit_handler_exists) {
-      $complete_form['actions']['submit']['#submit'][] = [
-        static::class, 'neoConfigFilesSubmit',
-      ];
+    if (isset($complete_form['actions']['submit'])) {
+
+      if (empty($complete_form['actions']['submit']['#submit'])) {
+        // We have no submit handler. This typically means submitForm would have
+        // been called. We need to check if we have this method and add it.
+        $form_object = $form_state->getFormObject();
+        if (method_exists($form_object, 'submitForm')) {
+          $complete_form['actions']['submit']['#submit'][] = '::submitForm';
+        }
+      }
+
+      // Add global submit handler.
+      $submit_handler_exists = isset($complete_form['actions']['submit']['#submit']) && array_filter($complete_form['actions']['submit']['#submit'], function ($submit) {
+        return is_array($submit) && isset($submit[1]) && $submit[1] === 'neoConfigFilesSubmit';
+      });
+
+      if (!$submit_handler_exists) {
+        $complete_form['actions']['submit']['#submit'][] = [
+          static::class, 'neoConfigFilesSubmit',
+        ];
+      }
+    }
+    else {
+      throw new \Exception('Submit button not found.');
     }
 
     return $element;
@@ -103,32 +119,36 @@ class ConfigFile extends ManagedFile {
     $fields = $form_state->getTemporaryValue('neo_config_file_field_names');
     if (!empty($fields)) {
       $form_object = $form_state->getFormObject();
-      if ($form_object instanceof EntityFormInterface) {
-        /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
-        $storage = \Drupal::entityTypeManager()->getStorage('neo_config_file');
-        foreach ($fields as $array_parents) {
-          $element = NestedArray::getValue($form, $array_parents);
-          $values = $form_state->getValue($element['#parents']);
-          $values = is_array($values) ? $values : [$values];
-          foreach ($values as $neo_config_file_id) {
-            $config_file = $storage->load($neo_config_file_id);
-            // Store dependencies.
-            if (!empty($element['#dependencies'])) {
-              foreach ($element['#dependencies'] as $type => $dependents) {
-                foreach ($dependents as $name) {
-                  $config_file->addDependent($type, $name);
-                }
+      /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
+      $storage = \Drupal::entityTypeManager()->getStorage('neo_config_file');
+      foreach ($fields as $array_parents) {
+        $element = NestedArray::getValue($form, $array_parents);
+        $values = $form_state->getValue($element['#parents']);
+        $values = is_array($values) ? $values : [$values];
+        foreach (array_filter($values) as $neo_config_file_id) {
+          $config_file = $storage->load($neo_config_file_id);
+          if (!$config_file) {
+            continue;
+          }
+          $config_file->set('parent_form_id', $form_object->getFormId());
+          // Store dependencies.
+          if (!empty($element['#dependencies'])) {
+            foreach ($element['#dependencies'] as $type => $dependents) {
+              foreach ($dependents as $name) {
+                $config_file->addDependent($type, $name);
               }
             }
+          }
+          if ($form_object instanceof EntityFormInterface) {
             $parent_entity = $form_object->getEntity();
             $field_name = end($element['#parents']);
             $config_file->setParentEntity($parent_entity);
             $config_file->set('parent_field', $field_name);
-            $config_file->save();
-            if ($file = $config_file->getFile()) {
-              $file->setPermanent();
-              $file->save();
-            }
+          }
+          $config_file->save();
+          if ($file = $config_file->getFile()) {
+            $file->setPermanent();
+            $file->save();
           }
         }
       }

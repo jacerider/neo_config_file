@@ -16,6 +16,9 @@ neo_config_file.neo_config_file.*:
     uri:
       type: string
       label: URI
+    parent_form_id:
+      type: string
+      label: 'Parent form id'
     parent_type:
       type: string
       label: 'Parent entity type'

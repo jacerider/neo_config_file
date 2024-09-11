@@ -84,6 +84,14 @@ interface ConfigFileInterface extends ConfigEntityInterface {
   public function removeCache();
 
   /**
+   * Get parent form id.
+   *
+   * @return string
+   *   The parent form id.
+   */
+  public function getParentFormId();
+
+  /**
    * Sets the parent entity.
    *
    * @param \Drupal\Core\Config\Entity\ConfigEntityInterface $entity

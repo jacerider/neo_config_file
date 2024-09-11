@@ -45,6 +45,18 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
         ],
       ],
     ];
+    if ($parent_form_id = $entity->getParentFormId()) {
+      $row['info']['data']['#items'][] = [
+        'term' => $this->t('Parent form ID'),
+        'description' => $parent_form_id,
+      ];
+    }
+    if ($parent_entity = $entity->getParentEntity()) {
+      $row['info']['data']['#items'][] = [
+        'term' => $this->t('Parent entity'),
+        'description' => $parent_entity->label() . ' (' . $parent_entity->getEntityTypeId() . ':' . $parent_entity->id() . ')',
+      ];
+    }
     if ($file = $entity->getFile()) {
       $row['label'] = [];
       $row['label']['data'] = [

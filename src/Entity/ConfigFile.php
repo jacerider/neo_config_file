@@ -16,6 +16,8 @@ use Drupal\neo_config_file\ConfigFileEntityEventInterface;
 use Drupal\neo_config_file\ConfigFileInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
+use Drupal\neo_config_file\Event\ConfigFilePreDeleteEvent;
+use Drupal\neo_config_file\Event\ConfigFilePreSaveEvent;
 
 /**
  * Defines the config file entity type.
@@ -55,6 +57,7 @@ use Drupal\file\FileInterface;
  *     "uid",
  *     "filename",
  *     "uri",
+ *     "parent_form_id",
  *     "parent_type",
  *     "parent_id",
  *     "parent_field",
@@ -128,6 +131,11 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
       $parent_entity->neoConfigFileUpdate($this);
     }
 
+    /** @var \Symfony\Component\EventDispatcher\EventDispatcherInterface $eventDispatcher */
+    $eventDispatcher = \Drupal::service('event_dispatcher');
+    $event = new ConfigFilePreSaveEvent($this);
+    $eventDispatcher->dispatch($event, ConfigFilePreSaveEvent::EVENT_NAME);
+
     // Keep track of the file's changed time so that this entity will be resaved
     // whenever the file is changed.
     $this->set('changed', $this->getFile()->getChangedTime());
@@ -156,6 +164,11 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
       if (($parent_entity = $entity->getParentEntity()) && $parent_entity instanceof ConfigFileEntityEventInterface) {
         $parent_entity->neoConfigFileDelete($entity);
       }
+
+      /** @var \Symfony\Component\EventDispatcher\EventDispatcherInterface $eventDispatcher */
+      $eventDispatcher = \Drupal::service('event_dispatcher');
+      $event = new ConfigFilePreDeleteEvent($entity);
+      $eventDispatcher->dispatch($event, ConfigFilePreDeleteEvent::EVENT_NAME);
 
       // The file entity is always deleted when the neo config file entity
       // is deleted. If not done during a sync, the actual file will still
@@ -320,6 +333,13 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
     $cache = \Drupal::service('cache.neo_config_file');
     $cache->delete($this->id());
     return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getParentFormId() {
+    return $this->get('parent_form_id');
   }
 
   /**
