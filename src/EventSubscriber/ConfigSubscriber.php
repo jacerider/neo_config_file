@@ -39,6 +39,30 @@ class ConfigSubscriber implements EventSubscriberInterface {
   }
 
   /**
+   * On config storage transform import.
+   *
+   * @param \Drupal\Core\Config\StorageTransformEvent $event
+   *   The configuration event.
+   */
+  public function onStorageTransformImport(StorageTransformEvent $event) {
+    $prefix = 'neo_config_file.neo_config_file.';
+    $config_names = $event->getStorage()->listAll($prefix);
+    if (!empty($config_names)) {
+      // Loop through every neo config file about to be exported and move the
+      // file associated with it to config.
+      /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
+      $storage = $this->entityTypeManager->getStorage('neo_config_file');
+      foreach ($config_names as $config_name) {
+        $config_file = $storage->load(substr($config_name, strlen($prefix)));
+        // Always make sure we have a copy of the file in the files directory.
+        if ($file = $config_file->getFile()) {
+          $config_file->validateFile($file);
+        }
+      }
+    }
+  }
+
+  /**
    * On config storage transform export.
    *
    * @param \Drupal\Core\Config\StorageTransformEvent $event
@@ -78,6 +102,9 @@ class ConfigSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events[ConfigEvents::IMPORT][] = ['onImport', 0];
+    $events[ConfigEvents::STORAGE_TRANSFORM_IMPORT][] = [
+      'onStorageTransformImport', 0,
+    ];
     $events[ConfigEvents::STORAGE_TRANSFORM_EXPORT][] = [
       'onStorageTransformExport', 0,
     ];

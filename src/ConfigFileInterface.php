@@ -3,6 +3,7 @@
 namespace Drupal\neo_config_file;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\file\FileInterface;
 
 /**
  * Provides an interface defining a config file entity type.
@@ -26,6 +27,19 @@ interface ConfigFileInterface extends ConfigEntityInterface {
    *   The file entity.
    */
   public function getFile();
+
+  /**
+   * Validate file.
+   *
+   * @param \Drupal\file\FileInterface $file
+   *   The file entity.
+   * @param bool $allowFromConfig
+   *   Allow file to be created from config.
+   *
+   * @return bool
+   *   Returns TRUE if file is created.
+   */
+  public function validateFile(FileInterface $file, $allowFromConfig = TRUE):bool;
 
   /**
    * Get the config uri to the file.

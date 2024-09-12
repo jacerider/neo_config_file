@@ -195,25 +195,66 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
   }
 
   /**
-   * Validate file.
+   * {@inheritdoc}
+   */
+  public function validateFile(FileInterface $file, $allowFromConfig = TRUE):bool {
+    $uri = $file->getFileUri();
+    $status = FALSE;
+    if (!file_exists($uri)) {
+      // We have the file entity, but we don't have the actual file in our
+      // file system. Try to re-create it from cache. This can happen when a
+      // database is pulled down but the files are not pulled down.
+      $status = $this->recreateFileFromCache($file);
+      if (!$status && $allowFromConfig) {
+        $status = $this->recreateFileFromConfig($file);
+      }
+    }
+    return $status;
+  }
+
+  /**
+   * Recreate the file from database cache.
    *
    * @param \Drupal\file\FileInterface $file
    *   The file entity.
+   *
+   * @return bool
+   *   If the file was created from cache.
    */
-  protected function validateFile(FileInterface $file) {
-    $uri = $file->getFileUri();
-    if (!file_exists($uri)) {
-      // We have the file entity, but we don't have the actual file in our
-      // file system. Try to re-create it from cache.
-      // This can happen when a database is pulled down but the files are not
-      // pulled down.
-      if ($data = $this->getCache()) {
-        /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-        $file_system = \Drupal::service('file_system');
-        $file_system->prepareDirectory(dirname($uri), FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
-        $file_system->saveData($data, $uri);
-      }
+  protected function recreateFileFromCache(FileInterface $file):bool {
+    if ($data = $this->getCache()) {
+      $uri = $file->getFileUri();
+      /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+      $file_system = \Drupal::service('file_system');
+      $directory = dirname($uri);
+      $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+      $file_system->saveData($data, $uri);
+      return TRUE;
     }
+    return FALSE;
+  }
+
+  /**
+   * Recreate the file from config.
+   *
+   * @param \Drupal\file\FileInterface $file
+   *   The file entity.
+   *
+   * @return bool
+   *   If the file was created from cache.
+   */
+  protected function recreateFileFromConfig(FileInterface $file):bool {
+    $configUri = $this->getConfigUri();
+    if (file_exists($configUri)) {
+      $uri = $file->getFileUri();
+      /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+      $file_system = \Drupal::service('file_system');
+      $directory = dirname($uri);
+      $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+      $file_system->copy($configUri, $uri);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
@@ -237,7 +278,6 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
     $file = $this->getFile();
     $destination = $this->uri;
     if ($file) {
-      // Make sure the actual file exists.
       $this->validateFile($file);
       return FALSE;
     }
@@ -272,7 +312,7 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
       return FALSE;
     }
     // Make sure the actual file exists.
-    $this->validateFile($file);
+    $this->validateFile($file, FALSE);
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
     $file_system->prepareDirectory(dirname($destination), FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
