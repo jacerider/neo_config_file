@@ -48,14 +48,16 @@ class ConfigSubscriber implements EventSubscriberInterface {
     $prefix = 'neo_config_file.neo_config_file.';
     $config_names = $event->getStorage()->listAll($prefix);
     if (!empty($config_names)) {
-      // Loop through every neo config file about to be exported and move the
-      // file associated with it to config.
+      // Loop through every neo config file about to be imported and move the
+      // validate its existence.
       /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
       $storage = $this->entityTypeManager->getStorage('neo_config_file');
       foreach ($config_names as $config_name) {
+        /** @var \Drupal\neo_config_file\ConfigFileInterface $config_file */
         $config_file = $storage->load(substr($config_name, strlen($prefix)));
         // Always make sure we have a copy of the file in the files directory.
-        if ($file = $config_file->getFile()) {
+        if ($config_file && ($file = $config_file->getFile())) {
+        // if ($file = $config_file->getFile()) {
           $config_file->validateFile($file);
         }
       }
