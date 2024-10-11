@@ -138,7 +138,9 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
 
     // Keep track of the file's changed time so that this entity will be resaved
     // whenever the file is changed.
-    $this->set('changed', $this->getFile()->getChangedTime());
+    if (!$this->isNew()) {
+      $this->set('changed', $this->getFile()->getChangedTime());
+    }
   }
 
   /**
