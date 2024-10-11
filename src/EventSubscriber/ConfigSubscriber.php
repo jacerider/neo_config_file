@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\neo_config_file\Cache\CacheDatabaseBackend;
 use Drupal\neo_config_file\ConfigFileInterface;
+use Drupal\neo_config_file\Entity\ConfigFile;
 use Drupal\neo_config_file\StreamWrapper\ConfigFileStream;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -46,18 +47,15 @@ class ConfigSubscriber implements EventSubscriberInterface {
    */
   public function onStorageTransformImport(StorageTransformEvent $event) {
     $prefix = 'neo_config_file.neo_config_file.';
-    $config_names = $event->getStorage()->listAll($prefix);
+    $storage = $event->getStorage();
+    $config_names = $storage->listAll($prefix);
     if (!empty($config_names)) {
       // Loop through every neo config file about to be imported and move the
       // validate its existence.
-      /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
-      $storage = $this->entityTypeManager->getStorage('neo_config_file');
       foreach ($config_names as $config_name) {
-        /** @var \Drupal\neo_config_file\ConfigFileInterface $config_file */
-        $config_file = $storage->load(substr($config_name, strlen($prefix)));
-        // Always make sure we have a copy of the file in the files directory.
-        if ($config_file && ($file = $config_file->getFile())) {
-        // if ($file = $config_file->getFile()) {
+        $value = $storage->read($config_name);
+        $config_file = ConfigFile::create($value);
+        if ($file = $config_file->getFile()) {
           $config_file->validateFile($file);
         }
       }
