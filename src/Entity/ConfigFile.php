@@ -199,6 +199,31 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
   /**
    * {@inheritdoc}
    */
+  public function renameFile(string $filename): void {
+    $file = $this->getFile();
+    $currentFilename = $file->getFilename();
+    $currentFileUri = $file->getFileUri();
+    $parts = pathinfo($currentFilename);
+    if ($parts['filename'] != $filename) {
+      $directory = dirname($currentFileUri);
+      $newFilename = $filename . '.' . $parts['extension'];
+      $newFileUri = $directory . '/' . $newFilename;
+      /** @var \Drupal\Core\File\FileSystem $fileSystem */
+      $fileSystem = \Drupal::service('file_system');
+      $newFileUri = $fileSystem->move($currentFileUri, $newFileUri);
+      $newFilename = basename($newFilename);
+      $file->setFilename($newFilename);
+      $file->setFileUri($newFileUri);
+      $file->save();
+      $this->set('filename', $newFilename);
+      $this->set('uri', $newFileUri);
+      $this->save();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function validateFile(FileInterface $file, $allowFromConfig = TRUE):bool {
     $uri = $file->getFileUri();
     $status = FALSE;

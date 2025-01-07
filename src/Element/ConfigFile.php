@@ -6,7 +6,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityFormInterface;
-use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Render\Element;
 use Drupal\neo_config_file\ConfigFileInterface;
 use Drupal\file\Element\ManagedFile;
@@ -31,6 +30,7 @@ class ConfigFile extends ManagedFile {
    */
   public function getInfo() {
     return parent::getInfo() + [
+      '#after_build' => [[static::class, 'afterBuildManagedFile']],
       '#extensions' => ['txt'],
       '#dependencies' => [],
     ];
@@ -45,11 +45,13 @@ class ConfigFile extends ManagedFile {
   public static function processManagedFile(&$element, FormStateInterface $form_state, &$complete_form) {
     static::alterProperties($element);
     $element = parent::processManagedFile($element, $form_state, $complete_form);
+
     $fids = $element['#value']['fids'] ?? [];
     $element['#description'] = [
       '#theme' => 'file_upload_help',
       '#upload_validators' => $element['#upload_validators'],
       '#description' => $element['#description'] ?? '',
+      '#array_parents' => [],
     ];
 
     array_unshift($element['remove_button']['#submit'], [
@@ -76,7 +78,6 @@ class ConfigFile extends ManagedFile {
     ], $element['#array_parents']);
 
     if (isset($complete_form['actions']['submit'])) {
-
       if (empty($complete_form['actions']['submit']['#submit'])) {
         // We have no submit handler. This typically means submitForm would have
         // been called. We need to check if we have this method and add it.
@@ -195,6 +196,7 @@ class ConfigFile extends ManagedFile {
    */
   public static function valueCallback(&$element, $input, FormStateInterface $form_state) {
     static::alterProperties($element);
+    $all_files = \Drupal::request()->files->get('files', []);
     if (!empty($element['#default_value'])) {
       if (!$element['#multiple'] && is_string($element['#default_value'])) {
         $element['#default_value'] = [$element['#default_value']];
@@ -224,6 +226,9 @@ class ConfigFile extends ManagedFile {
       foreach ($value['fids'] as $fid) {
         if ($config_file = $storage->loadByFileId($fid)) {
           $value['cfids'][] = $config_file->id();
+          if ($all_files && !array_key_exists('upload', $value) && !empty($element['#filename'])) {
+            $config_file->renameFile($element['#filename']);
+          }
         }
       }
     }
@@ -244,6 +249,24 @@ class ConfigFile extends ManagedFile {
       }
       $form_state->setValueForElement($element, $value);
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function afterBuildManagedFile(array $element, FormStateInterface $form_state) {
+    // Consolidate the array value of this field to array of FIDs.
+    if ($form_state->isProcessingInput()) {
+      $value = $form_state->getValue($element['#parents']);
+      if (is_array($value) && isset($value['cfids'])) {
+        $value = $value['cfids'];
+        if (!$element['#multiple']) {
+          $value = reset($value);
+        }
+        $form_state->setValueForElement($element, $value);
+      }
+    }
+    return $element;
   }
 
   /**

@@ -29,6 +29,22 @@ interface ConfigFileInterface extends ConfigEntityInterface {
   public function getFile();
 
   /**
+   * Renames the file associated with this entity.
+   *
+   * This method renames the file associated with this entity to the provided
+   * filename. It updates the file's URI and filename properties and saves the
+   * changes to the file and the entity.
+   *
+   * @param string $filename
+   *   The new filename to rename the file to. DO NOT include the file
+   *   extension.
+   *
+   * @throws \Exception
+   *   Throws an exception if the file cannot be moved.
+   */
+  public function renameFile(string $filename): void;
+
+  /**
    * Validate file.
    *
    * @param \Drupal\file\FileInterface $file

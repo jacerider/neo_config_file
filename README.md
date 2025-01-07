@@ -47,6 +47,8 @@ $form['file'] = [
   '#title' => $this->t('File'),
   '#default_value' => $this->configuration['file'],
   '#extensions' => ['jpg', 'jpeg', 'png', 'gif'],
+  // The optional filename of the uploaded file.
+  '#filename' => 'my-awesome-file',
   '#dependencies' => [
     'module' => [
       'neo_style',

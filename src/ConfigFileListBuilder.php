@@ -28,14 +28,13 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
     /** @var \Drupal\neo_config_file\ConfigFileInterface $entity */
     $row['label'][] = $entity->label();
     $row['info'] = [
-      'class' => 'td--min',
       'data' => [
         '#theme' => 'description_list',
-        '#style' => 'inline',
-        '#size' => 'xs',
+        '#neo_style' => 'inline',
+        '#neo_size' => 'xs',
         '#items' => [
           [
-            'term' => $this->t('Machine name'),
+            'term' => $this->t('ID'),
             'description' => $entity->id(),
           ],
           [
@@ -44,6 +43,7 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
           ],
         ],
       ],
+      '#neo_size' => 'min',
     ];
     if ($parent_form_id = $entity->getParentFormId()) {
       $row['info']['data']['#items'][] = [
@@ -74,8 +74,8 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
     }
     $dependencies = [
       '#theme' => 'description_list',
-      '#style' => 'inline',
-      '#size' => 'xs',
+      '#neo_style' => 'inline',
+      '#neo_size' => 'xs',
       '#items' => [],
     ];
     foreach ($entity->getDependencies() as $type => $names) {
@@ -85,8 +85,8 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
       ];
     }
     $row['dependencies'] = [
-      'class' => 'td--min',
       'data' => $dependencies,
+      '#neo_size' => 'min',
     ];
     $row['status'] = $entity->hasConfig() ? $this->t('Active') : $this->t('Pending');
     return $row;
