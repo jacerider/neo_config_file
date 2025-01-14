@@ -43,14 +43,12 @@ class ConfigFileStorage extends ConfigEntityStorage implements ConfigFileStorage
    * {@inheritDoc}
    */
   public function createFromFile(FileInterface $file) {
-    $filename = basename($file->getFileUri());
-    $config_file = $this->create([
+    return $this->create([
       'id' => \Drupal::service('uuid')->generate(),
-      'filename' => $filename,
+      'filename' => basename($file->getFileUri()),
       'uri' => $file->getFileUri(),
       'uid' => $file->getOwnerId(),
     ]);
-    return $config_file;
   }
 
 }
