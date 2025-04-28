@@ -54,7 +54,6 @@ class ConfigFileStorage extends ConfigEntityStorage implements ConfigFileStorage
       $id = $first . '__' . $second;
     }
     return $this->create([
-      // 'id' => \Drupal::service('uuid')->generate(),
       'id' => $id,
       'filename' => basename($file->getFileUri()),
       'uri' => $file->getFileUri(),
