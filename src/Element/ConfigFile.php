@@ -10,6 +10,7 @@ use Drupal\Core\Render\Element;
 use Drupal\neo_config_file\ConfigFileInterface;
 use Drupal\file\Element\ManagedFile;
 use Drupal\file\Entity\File;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Provides a form element for uploading a config file.
@@ -31,6 +32,7 @@ class ConfigFile extends ManagedFile {
   public function getInfo() {
     return parent::getInfo() + [
       '#after_build' => [[static::class, 'afterBuildManagedFile']],
+      '#filename' => '',
       '#extensions' => ['txt'],
       '#dependencies' => [],
     ];
@@ -196,7 +198,28 @@ class ConfigFile extends ManagedFile {
    */
   public static function valueCallback(&$element, $input, FormStateInterface $form_state) {
     static::alterProperties($element);
-    $all_files = \Drupal::request()->files->get('files', []);
+
+    // Rename uploaded file to the filename specified in the element.
+    if (!empty($element['#filename'])) {
+      $request = \Drupal::request();
+      $all_files = $request->files->get('files', []);
+      if ($all_files) {
+        $upload_name = implode('_', $element['#parents']);
+        if (isset($all_files[$upload_name]) && empty($_FILES['files']['neo_config_file_processed'][$upload_name])) {
+          // Only process once.
+          $_FILES['files']['neo_config_file_processed'][$upload_name] = TRUE;
+
+          /** @var \Symfony\Component\HttpFoundation\File\UploadedFile $file */
+          $file = $all_files[$upload_name];
+          $newName = $element['#filename'] . '.' . $file->getClientOriginalExtension();
+
+          $newFile = new UploadedFile($file->getPath() . '/' . $file->getFilename(), $newName, $file->getClientMimeType(), FALSE);
+          $all_files[$upload_name] = $newFile;
+          $request->files->set('files', $all_files);
+        }
+      }
+    }
+
     if (!empty($element['#default_value'])) {
       if (!$element['#multiple'] && is_string($element['#default_value'])) {
         $element['#default_value'] = [$element['#default_value']];
@@ -226,9 +249,6 @@ class ConfigFile extends ManagedFile {
       foreach ($value['fids'] as $fid) {
         if ($config_file = $storage->loadByFileId($fid)) {
           $value['cfids'][] = $config_file->id();
-          if ($all_files && !array_key_exists('upload', $value) && !empty($element['#filename'])) {
-            $config_file->renameFile($element['#filename']);
-          }
         }
       }
     }
