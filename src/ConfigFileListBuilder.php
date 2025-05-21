@@ -4,11 +4,14 @@ namespace Drupal\neo_config_file;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\neo_icon\IconTranslationTrait;
 
 /**
  * Provides a listing of config files.
  */
 class ConfigFileListBuilder extends ConfigEntityListBuilder {
+
+  use IconTranslationTrait;
 
   /**
    * {@inheritdoc}
@@ -88,7 +91,9 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
       'data' => $dependencies,
       '#neo_size' => 'min',
     ];
-    $row['status'] = $entity->hasConfig() ? $this->t('Active') : $this->t('Pending');
+    $row['status']['data']['#markup'] = $this->statusIcon($entity->hasConfig(), $this->t('Active'), $this->t('Pending'))->iconOnly();
+    $row['status']['#neo_size'] = 'min';
+    $row['status']['#neo_align'] = 'center';
     return $row;
   }
 
