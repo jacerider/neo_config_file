@@ -4,14 +4,14 @@ namespace Drupal\neo_config_file;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\neo_icon\IconTranslationTrait;
+use Drupal\neo_icon\IconTrait;
 
 /**
  * Provides a listing of config files.
  */
 class ConfigFileListBuilder extends ConfigEntityListBuilder {
 
-  use IconTranslationTrait;
+  use IconTrait;
 
   /**
    * {@inheritdoc}
