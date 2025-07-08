@@ -23,4 +23,4 @@ services:
 
   cache.backend.database.neo_config_file:
     class: Drupal\neo_config_file\Cache\DatabaseBackendFactory
-    arguments: ['@database', '@cache_tags.invalidator.checksum', '@settings']
+    arguments: ['@database', '@cache_tags.invalidator.checksum', '@settings', '@serialization.phpserialize', '@datetime.time']
