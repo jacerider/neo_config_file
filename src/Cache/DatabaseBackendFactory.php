@@ -14,7 +14,10 @@ class DatabaseBackendFactory extends CoreDatabaseBackendFactory {
    */
   public function get($bin) {
     $max_rows = $this->getMaxRowsForBin($bin);
-    return new CacheDatabaseBackend($this->connection, $this->checksumProvider, $bin, $max_rows);
+    if (version_compare(\Drupal::VERSION, '11.0.0', '<')) {
+      return new CacheDatabaseBackend($this->connection, $this->checksumProvider, $bin, $max_rows);
+    }
+    return new CacheDatabaseBackend($this->connection, $this->checksumProvider, $bin, $this->serializer, $this->time, $max_rows);
   }
 
 }
