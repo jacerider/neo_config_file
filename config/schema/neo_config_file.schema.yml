@@ -4,6 +4,8 @@ neo_config_file.neo_config_file.*:
   mapping:
     uuid:
       type: string
+      constraints:
+        Uuid: {}
     id:
       type: string
       label: ID
@@ -13,6 +15,9 @@ neo_config_file.neo_config_file.*:
     file:
       type: label
       label: 'File'
+    filename:
+      type: string
+      label: Filename
     uri:
       type: string
       label: URI
@@ -31,6 +36,9 @@ neo_config_file.neo_config_file.*:
     changed:
       type: string
       label: 'Changed'
+    dependencies:
+      type: config_dependencies
+      label: 'Dependencies'
     dependents:
       type: config_dependencies
       label: 'Dependents'
