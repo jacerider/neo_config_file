@@ -299,7 +299,7 @@ class ConfigFile extends ManagedFile {
     $element['#upload_location'] = ConfigFileInterface::PUBLIC_URI;
     if (!empty($element['#extensions']) && empty($element['#upload_validators']['FileExtension'])) {
       $element['#upload_validators']['FileExtension'] = [
-        ['extensions' => implode(' ', $element['#extensions'])],
+        'extensions' => implode(' ', $element['#extensions']),
       ];
     }
     $element['#upload_validators']['file_validate_size'] = [
