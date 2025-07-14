@@ -297,9 +297,9 @@ class ConfigFile extends ManagedFile {
    */
   protected static function alterProperties(array &$element) {
     $element['#upload_location'] = ConfigFileInterface::PUBLIC_URI;
-    if (!empty($element['#extensions']) && empty($element['#upload_validators']['file_validate_extensions'])) {
-      $element['#upload_validators']['file_validate_extensions'] = [
-        implode(' ', $element['#extensions']),
+    if (!empty($element['#extensions']) && empty($element['#upload_validators']['FileExtension'])) {
+      $element['#upload_validators']['FileExtension'] = [
+        ['extensions' => implode(' ', $element['#extensions'])],
       ];
     }
     $element['#upload_validators']['file_validate_size'] = [
