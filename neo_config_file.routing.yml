@@ -6,6 +6,36 @@ entity.neo_config_file.collection:
   requirements:
     _permission: 'administer neo_config_file'
 
+entity.neo_config_file.add_form:
+  path: '/admin/config/neo/config-file/add'
+  # defaults:
+  #   _entity_form: 'neo_config_file.add'
+  #   _title: 'Add a Config File'
+  defaults:
+    _title: 'Config File Add'
+    _form: 'Drupal\neo_config_file\Form\ConfigFileAddForm'
+  requirements:
+    _permission: 'administer neo_config_file'
+
+entity.neo_config_file.edit_form:
+  path: '/admin/config/neo/config-file/{neo_config_file}'
+  defaults:
+    _entity_form: 'neo_config_file.edit'
+    _title: 'Add a Config File'
+  # defaults:
+  #   _title: 'Config File Add'
+  #   _form: 'Drupal\neo_config_file\Form\ConfigFileAddForm'
+  requirements:
+    _permission: 'administer neo_config_file'
+
+entity.neo_config_file.delete_form:
+  path: '/admin/config/neo/config-file/{neo_config_file}/delete'
+  defaults:
+    _entity_form: 'neo_config_file.delete'
+    _title: 'Delete a pallet'
+  requirements:
+    _permission: 'administer neo_config_file'
+
 system.config:
   path: '/system/config'
   defaults:

@@ -21,6 +21,7 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
     $header['info'] = $this->t('Info');
     $header['dependencies'] = $this->t('Dependencies');
     $header['status'] = $this->t('Config Status');
+    $header['operations'] = $this->t('Operations');
     return $header;
   }
 
@@ -94,6 +95,8 @@ class ConfigFileListBuilder extends ConfigEntityListBuilder {
     $row['status']['data']['#markup'] = $this->statusIcon($entity->hasConfig(), $this->t('Active'), $this->t('Pending'))->iconOnly();
     $row['status']['#neo_size'] = 'min';
     $row['status']['#neo_align'] = 'center';
+
+    $row['operations']['data'] = $this->buildOperations($entity);
     return $row;
   }
 

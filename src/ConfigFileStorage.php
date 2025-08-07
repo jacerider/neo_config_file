@@ -12,6 +12,36 @@ use Drupal\file\FileInterface;
 class ConfigFileStorage extends ConfigEntityStorage implements ConfigFileStorageInterface {
 
   /**
+   * Static array to keep track of files being saved.
+   *
+   * @var array
+   */
+  protected static array $saving = [];
+
+  /**
+   * Set the config file as being saved.
+   *
+   * @param \Drupal\neo_config_file\ConfigFileInterface $configFile
+   *   The config file entity being saved.
+   */
+  public static function flagAsSaving(ConfigFileInterface $configFile) {
+    self::$saving[$configFile->id()] = $configFile->get('uri');
+  }
+
+  /**
+   * Check if a config file is being saved.
+   *
+   * @param string $uri
+   *   The URI of the file to check if it is being saved.
+   *
+   * @return bool
+   *   TRUE if the file is being saved, FALSE otherwise.
+   */
+  public static function isSaving($uri) {
+    return in_array($uri, self::$saving, TRUE);
+  }
+
+  /**
    * {@inheritDoc}
    */
   public function loadByUri($uri) {
@@ -43,8 +73,7 @@ class ConfigFileStorage extends ConfigEntityStorage implements ConfigFileStorage
    * {@inheritDoc}
    */
   public function createFromFile(FileInterface $file) {
-    $filename = basename($file->getFileUri());
-    $id = $filename;
+    $id = basename($file->getFileUri());
     $id = strtolower($id);
     $id = preg_replace('/[^a-z0-9_]+/', '_', $id);
     $id = preg_replace('/_+/', '_', $id);

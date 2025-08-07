@@ -16,6 +16,7 @@ use Drupal\neo_config_file\ConfigFileEntityEventInterface;
 use Drupal\neo_config_file\ConfigFileInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
+use Drupal\neo_config_file\ConfigFileStorage;
 use Drupal\neo_config_file\Event\ConfigFilePreDeleteEvent;
 use Drupal\neo_config_file\Event\ConfigFilePreSaveEvent;
 
@@ -35,6 +36,7 @@ use Drupal\neo_config_file\Event\ConfigFilePreSaveEvent;
  *   handlers = {
  *     "list_builder" = "Drupal\neo_config_file\ConfigFileListBuilder",
  *     "storage" = "Drupal\neo_config_file\ConfigFileStorage",
+ *     "access" = "Drupal\neo_config_file\ConfigFileAccessControlHandler",
  *     "form" = {
  *       "add" = "Drupal\neo_config_file\Form\ConfigFileForm",
  *       "edit" = "Drupal\neo_config_file\Form\ConfigFileForm",
@@ -44,7 +46,10 @@ use Drupal\neo_config_file\Event\ConfigFilePreSaveEvent;
  *   config_prefix = "neo_config_file",
  *   admin_permission = "administer neo_config_file",
  *   links = {
- *     "collection" = "/admin/structure/config-file",
+ *     "collection" = "/admin/config/neo/config-file",
+ *     "add-form" = "/admin/config/neo/config-file/add",
+ *     "edit-form" = "/admin/config/neo/config-file/{neo_config_file}",
+ *     "delete-form" = "/admin/config/neo/config-file/{neo_config_file}/delete",
  *   },
  *   entity_keys = {
  *     "id" = "id",
@@ -114,6 +119,8 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
    */
   public function preSave(EntityStorageInterface $storage) {
     parent::preSave($storage);
+
+    ConfigFileStorage::flagAsSaving($this);
 
     // If we do not have a file entity, we want to take our config file and
     // convert it to an actual file entity.

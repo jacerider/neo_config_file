@@ -10,6 +10,7 @@ use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\neo_config_file\ConfigFileInterface;
 use Drupal\file\FileInterface;
+use Drupal\neo_config_file\ConfigFileStorage;
 
 /**
  * Implements hook_theme().
@@ -30,6 +31,10 @@ function neo_config_file_file_insert(FileInterface $entity) {
   if (strpos($uri, ConfigFileInterface::PUBLIC_URI . '/') === 0) {
     /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
     $storage = \Drupal::entityTypeManager()->getStorage('neo_config_file');
+    if (ConfigFileStorage::isSaving($uri)) {
+      // Config file is already being saved, no need to create it again.
+      return;
+    }
     if (!$storage->loadByFile($entity)) {
       $storage->createFromFile($entity)->save();
     }

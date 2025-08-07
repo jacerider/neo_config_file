@@ -1,0 +1,5 @@
+entity.neo_config_file.add_form:
+  route_name: 'entity.neo_config_file.add_form'
+  title: 'Add config file'
+  appears_on:
+    - entity.neo_config_file.collection
