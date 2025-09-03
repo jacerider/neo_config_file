@@ -156,7 +156,7 @@ final class ConfigFileGenerator {
     }
 
     // Create the canvas with the specified dimensions.
-    $canvas = imagecreatetruecolor($canvasWidth, $canvasHeight);
+    $canvas = imagecreatetruecolor((int) $canvasWidth, (int) $canvasHeight);
 
     // Set background color.
     $bgColor = imagecolorallocate($canvas, $backgroundColor[0], $backgroundColor[1], $backgroundColor[2]);
