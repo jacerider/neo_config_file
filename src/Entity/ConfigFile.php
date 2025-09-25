@@ -164,7 +164,15 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
         $uri = $entity->getConfigUri();
         // Remove config file if it exists.
         if (file_exists($uri)) {
-          $file_system->delete($uri);
+          try {
+            $file_system->delete($uri);
+          }
+          catch (FileException $e) {
+            \Drupal::logger('neo_config_file')->error('Failed to delete config file @uri: @message', [
+              '@uri' => $uri,
+              '@message' => $e->getMessage(),
+            ]);
+          }
         }
         $entity->removeCache();
       }
