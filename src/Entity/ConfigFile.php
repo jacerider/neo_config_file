@@ -124,12 +124,21 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
 
     // If we do not have a file entity, we want to take our config file and
     // convert it to an actual file entity.
-    if (!$this->getFile()) {
+    $file = $this->getFile();
+
+    if (!$file) {
       $this->toFile();
     }
     // If we are not syncing, we want to make sure we have a copy of this file
     // in cache.
     else {
+      $uri = $file->getFileUri();
+      if (!file_exists($uri)) {
+        // When the file entity exists but the actual file does not, we need to
+        // recreate it from config. This can happen when a database is pulled
+        // down but the files are not pulled down.
+        $this->validateFile($file);
+      }
       $this->toCache();
     }
 
