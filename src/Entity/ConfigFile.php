@@ -153,8 +153,8 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
     $eventDispatcher->dispatch($event, ConfigFilePreSaveEvent::EVENT_NAME);
 
     // Keep track of the file's changed time so that this entity will be resaved
-    // whenever the file is changed.
-    if (!$this->isNew()) {
+    // whenever the file is changed. Do not do this on config sync.
+    if (!$this->isNew() && !\Drupal::isConfigSyncing()) {
       $this->set('changed', $this->getFile()->getChangedTime());
     }
   }
