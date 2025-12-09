@@ -129,8 +129,6 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
     if (!$file) {
       $this->toFile();
     }
-    // If we are not syncing, we want to make sure we have a copy of this file
-    // in cache.
     else {
       $uri = $file->getFileUri();
       if (!file_exists($uri)) {
@@ -138,6 +136,10 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
         // recreate it from config. This can happen when a database is pulled
         // down but the files are not pulled down.
         $this->validateFile($file);
+      }
+      elseif ($this->isSyncing()) {
+        // Always recreate the file from config when syncing.
+        $this->recreateFileFromConfig($file);
       }
       $this->toCache();
     }
@@ -154,7 +156,7 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
 
     // Keep track of the file's changed time so that this entity will be resaved
     // whenever the file is changed. Do not do this on config sync.
-    if (!$this->isNew() && !\Drupal::isConfigSyncing()) {
+    if (!$this->isNew() && !$this->isSyncing()) {
       $this->set('changed', $this->getFile()->getChangedTime());
     }
   }
@@ -167,21 +169,13 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
     parent::preDelete($storage, $entities);
 
     foreach ($entities as $entity) {
-      if ($entity->isSyncing() || !$entity->hasConfig()) {
+      if (!$entity->hasConfig()) {
         /** @var \Drupal\Core\File\FileSystemInterface $file_system */
         $file_system = \Drupal::service('file_system');
         $uri = $entity->getConfigUri();
         // Remove config file if it exists.
         if (file_exists($uri)) {
-          try {
-            $file_system->delete($uri);
-          }
-          catch (FileException $e) {
-            \Drupal::logger('neo_config_file')->error('Failed to delete config file @uri: @message', [
-              '@uri' => $uri,
-              '@message' => $e->getMessage(),
-            ]);
-          }
+          $file_system->delete($uri);
         }
         $entity->removeCache();
       }
