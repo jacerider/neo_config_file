@@ -50,7 +50,7 @@ final class ConfigFileGenerator {
     $this->resizeImage($destination, $maxWidth, $maxHeight, $canvasWidth, $canvasHeight);
     /** @var \Drupal\file\FileInterface $file */
     $file = $this->entityTypeManager->getStorage('file')->create([
-      'filename' => basename($destination),
+      'filename' => $filename,
       'uri' => $destination,
       'status' => 1,
       'uid' => $this->account->id(),
