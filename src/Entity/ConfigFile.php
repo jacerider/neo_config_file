@@ -130,16 +130,18 @@ class ConfigFile extends ConfigEntityBase implements ConfigFileInterface {
       $this->toFile();
     }
     else {
-      $uri = $file->getFileUri();
-      if (!file_exists($uri)) {
-        // When the file entity exists but the actual file does not, we need to
-        // recreate it from config. This can happen when a database is pulled
-        // down but the files are not pulled down.
-        $this->validateFile($file);
-      }
-      elseif ($this->isSyncing()) {
+      if ($file->isSyncing()) {
         // Always recreate the file from config when syncing.
         $this->recreateFileFromConfig($file);
+      }
+      else {
+        $uri = $file->getFileUri();
+        if (!file_exists($uri)) {
+          // When the file entity exists but the actual file does not, we need
+          // to recreate it from config. This can happen when a database is
+          // pulled down but the files are not pulled down.
+          $this->validateFile($file);
+        }
       }
       $this->toCache();
     }
