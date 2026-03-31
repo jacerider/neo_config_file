@@ -302,7 +302,7 @@ class ConfigFile extends ManagedFile {
         'extensions' => implode(' ', $element['#extensions']),
       ];
     }
-    $element['#upload_validators']['FileSizeLimit'] = ['fileLimit' => Bytes::toNumber('10MB')];
+    $element['#upload_validators']['FileSizeLimit'] = ['fileLimit' => Bytes::toNumber('20MB')];
   }
 
 }
