@@ -67,7 +67,7 @@ final class ConfigFileAddForm extends FormBase {
       '#title' => $this->t('File'),
       '#upload_location' => 'temporary://neo-file',
       '#upload_validators' => [
-        'FileSizeLimit' => ['fileLimit' => Bytes::toNumber('10MB')],
+        'FileSizeLimit' => ['fileLimit' => Bytes::toNumber('20MB')],
       ],
     ];
 
