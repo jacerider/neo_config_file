@@ -5,6 +5,7 @@ namespace Drupal\neo_config_file\Element;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Render\Element;
 use Drupal\neo_config_file\ConfigFileInterface;
@@ -79,23 +80,33 @@ class ConfigFile extends ManagedFile {
       implode('][', $element['#array_parents']),
     ], $element['#array_parents']);
 
+    // Forms may relocate their actions (e.g. neo_alchemist's
+    // InstanceComponentForm moves them into a footer wrapper), so check the
+    // known locations for the submit button.
+    $submit = NULL;
     if (isset($complete_form['actions']['submit'])) {
-      if (empty($complete_form['actions']['submit']['#submit'])) {
+      $submit = &$complete_form['actions']['submit'];
+    }
+    elseif (isset($complete_form['footer']['actions']['submit'])) {
+      $submit = &$complete_form['footer']['actions']['submit'];
+    }
+    if ($submit !== NULL) {
+      if (empty($submit['#submit'])) {
         // We have no submit handler. This typically means submitForm would have
         // been called. We need to check if we have this method and add it.
         $form_object = $form_state->getFormObject();
         if (method_exists($form_object, 'submitForm')) {
-          $complete_form['actions']['submit']['#submit'][] = '::submitForm';
+          $submit['#submit'][] = '::submitForm';
         }
       }
 
       // Add global submit handler.
-      $submit_handler_exists = isset($complete_form['actions']['submit']['#submit']) && array_filter($complete_form['actions']['submit']['#submit'], function ($submit) {
-        return is_array($submit) && isset($submit[1]) && $submit[1] === 'neoConfigFilesSubmit';
+      $submit_handler_exists = isset($submit['#submit']) && array_filter($submit['#submit'], function ($handler) {
+        return is_array($handler) && isset($handler[1]) && $handler[1] === 'neoConfigFilesSubmit';
       });
 
       if (!$submit_handler_exists) {
-        $complete_form['actions']['submit']['#submit'][] = [
+        $submit['#submit'][] = [
           static::class, 'neoConfigFilesSubmit',
         ];
       }
@@ -145,7 +156,12 @@ class ConfigFile extends ManagedFile {
           if ($form_object instanceof EntityFormInterface) {
             $parent_entity = $form_object->getEntity();
             $field_name = end($element['#parents']);
-            $config_file->setParentEntity($parent_entity);
+            // Only config entities can be tracked as the parent; content-entity
+            // forms (e.g. the transient Alchemist block host) rely on the
+            // declared #dependencies instead.
+            if ($parent_entity instanceof ConfigEntityInterface) {
+              $config_file->setParentEntity($parent_entity);
+            }
             $config_file->set('parent_field', $field_name);
           }
           $config_file->save();

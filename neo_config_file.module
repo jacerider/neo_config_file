@@ -95,14 +95,21 @@ function template_preprocess_neo_config_file_link(&$variables) {
     'png',
     'gif',
   ])) {
-    $variables['description'] = [
-      '#theme' => 'image_style',
-      '#style_name' => 'thumbnail',
+    $description = [
+      '#theme' => 'image',
       '#uri' => $uri,
+      '#width' => 100,
       '#prefix' => '<div>',
       '#suffix' => '</div>',
       '#weight' => -100,
     ];
+    // Not all sites have the core 'thumbnail' image style.
+    if (\Drupal::entityTypeManager()->getStorage('image_style')->load('thumbnail')) {
+      unset($description['#width']);
+      $description['#theme'] = 'image_style';
+      $description['#style_name'] = 'thumbnail';
+    }
+    $variables['description'] = $description;
   }
   if (function_exists('template_preprocess_file_link')) {
     template_preprocess_file_link($variables);
