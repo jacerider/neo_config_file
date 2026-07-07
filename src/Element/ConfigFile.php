@@ -215,23 +215,52 @@ class ConfigFile extends ManagedFile {
   public static function valueCallback(&$element, $input, FormStateInterface $form_state) {
     static::alterProperties($element);
 
-    // Rename uploaded file to the filename specified in the element.
+    // Rename the uploaded file to the filename specified in the element, and
+    // deduplicate re-processing of the SAME upload.
+    //
+    // A file input keeps its selection after the user chooses a file, so any
+    // form that refreshes on change (e.g. the Alchemist component preview)
+    // re-submits the same bytes in a second request that races the managed-file
+    // upload. Without a guard the parent ManagedFile saves the identical upload
+    // twice and a duplicate File + neo_config_file ("…_0") is created. Key a
+    // short-lived per-user store on the element and a content fingerprint: an
+    // identical re-send reuses the file that was already saved, while a
+    // genuinely different file (even one the user happens to name the same)
+    // still gets its own copy. Form-cache state is unreliable here because the
+    // racing requests submit the same (pre-upload) form build id, so a
+    // build-independent tempstore is used.
+    $dedupe_key = NULL;
+    $fresh_upload = FALSE;
     if (!empty($element['#filename'])) {
       $request = \Drupal::request();
       $all_files = $request->files->get('files', []);
-      if ($all_files) {
-        $upload_name = implode('_', $element['#parents']);
-        if (isset($all_files[$upload_name]) && empty($_FILES['files']['neo_config_file_processed'][$upload_name])) {
-          // Only process once.
-          $_FILES['files']['neo_config_file_processed'][$upload_name] = TRUE;
-
-          /** @var \Symfony\Component\HttpFoundation\File\UploadedFile $file */
-          $file = $all_files[$upload_name];
-          $newName = $element['#filename'] . '.' . $file->getClientOriginalExtension();
-
-          $newFile = new UploadedFile($file->getPath() . '/' . $file->getFilename(), $newName, $file->getClientMimeType(), FALSE);
-          $all_files[$upload_name] = $newFile;
-          $request->files->set('files', $all_files);
+      $upload_name = implode('_', $element['#parents']);
+      if (!empty($all_files[$upload_name])) {
+        /** @var \Symfony\Component\HttpFoundation\File\UploadedFile $file */
+        $file = $all_files[$upload_name];
+        if ($file->isValid()) {
+          $store = \Drupal::service('tempstore.private')->get('neo_config_file');
+          $dedupe_key = 'upload:' . $upload_name . ':' . hash_file('sha256', $file->getPathname());
+          $existing_fid = $store->get($dedupe_key);
+          if ($existing_fid && File::load($existing_fid)) {
+            // The same upload was already saved during this interaction. Reuse
+            // it and drop the pending upload so the parent does not save it a
+            // second time.
+            $input = is_array($input) ? $input : [];
+            $input['fids'] = (string) $existing_fid;
+            unset($all_files[$upload_name]);
+            $request->files->set('files', $all_files);
+          }
+          else {
+            // First time seeing this upload: rename it to the deterministic
+            // filename and let the parent save it. The resulting fid is
+            // recorded below so subsequent re-sends reuse it.
+            $newName = $element['#filename'] . '.' . $file->getClientOriginalExtension();
+            $newFile = new UploadedFile($file->getPath() . '/' . $file->getFilename(), $newName, $file->getClientMimeType(), FALSE);
+            $all_files[$upload_name] = $newFile;
+            $request->files->set('files', $all_files);
+            $fresh_upload = TRUE;
+          }
         }
       }
     }
@@ -258,6 +287,13 @@ class ConfigFile extends ManagedFile {
       }
     }
     $value = parent::valueCallback($element, $input, $form_state);
+
+    // Remember the fid produced by a fresh upload so an identical re-send in a
+    // racing request reuses it instead of saving a duplicate.
+    if ($fresh_upload && $dedupe_key && !empty($value['fids'])) {
+      \Drupal::service('tempstore.private')->get('neo_config_file')->set($dedupe_key, (int) reset($value['fids']));
+    }
+
     $value['cfids'] = [];
     if (!empty($value['fids'])) {
       /** @var \Drupal\neo_config_file\ConfigFileStorageInterface $storage */
