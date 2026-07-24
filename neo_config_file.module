@@ -95,21 +95,26 @@ function template_preprocess_neo_config_file_link(&$variables) {
     'png',
     'gif',
   ])) {
-    $description = [
-      '#theme' => 'image',
-      '#uri' => $uri,
-      '#width' => 100,
+    // Render the source image directly (not an image-style derivative) with a
+    // cache-busting query. When a file is replaced in place — same filename and
+    // URI, as with a re-captured Alchemist thumbnail — an image-style URL would
+    // still resolve to the stale derivative already cached on disk. Serving the
+    // source with a token keyed on the file's changed time is the only way to
+    // guarantee the preview reflects the new bytes.
+    $url = \Drupal::service('file_url_generator')->generateString($uri);
+    $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . $file->getChangedTime();
+    $variables['description'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'img',
+      '#attributes' => [
+        'src' => $url,
+        'width' => 100,
+        'alt' => $file->getFilename(),
+      ],
       '#prefix' => '<div>',
       '#suffix' => '</div>',
       '#weight' => -100,
     ];
-    // Not all sites have the core 'thumbnail' image style.
-    if (\Drupal::entityTypeManager()->getStorage('image_style')->load('thumbnail')) {
-      unset($description['#width']);
-      $description['#theme'] = 'image_style';
-      $description['#style_name'] = 'thumbnail';
-    }
-    $variables['description'] = $description;
   }
   if (function_exists('template_preprocess_file_link')) {
     template_preprocess_file_link($variables);
