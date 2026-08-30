@@ -14,6 +14,12 @@ services:
     class: Drupal\neo_config_file\ConfigFileGenerator
     arguments: ['@current_user', '@entity_type.manager', '@file_system']
 
+  # Public from the moment it ships: the modules that call it are other
+  # packages, which have no other way to reach it. See ADR 0001.
+  neo_config_file.zip_extractor:
+    class: Drupal\neo_config_file\ZipExtractor
+    arguments: ['@file_system']
+
   cache.neo_config_file:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:

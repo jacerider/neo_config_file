@@ -18,6 +18,7 @@
   "minimum-stability": "dev",
   "require": {
     "drupal/core": "^10.3 || ^11",
+    "ext-zip": "*",
     "jacerider/neo": "^1.0"
   }
 }
