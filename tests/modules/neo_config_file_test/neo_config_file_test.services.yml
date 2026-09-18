@@ -1,0 +1,5 @@
+services:
+  neo_config_file_test.stream_wrapper.norename:
+    class: Drupal\neo_config_file_test\StreamWrapper\NoRenameStream
+    tags:
+      - { name: stream_wrapper, scheme: norename }

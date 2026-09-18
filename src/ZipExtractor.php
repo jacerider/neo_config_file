@@ -72,6 +72,9 @@ final class ZipExtractor {
    *
    * @throws \Drupal\neo_config_file\Exception\ExtractionRefusedException
    *   When the archive does not resolve to a path on disk, or will not open.
+   * @throws \RuntimeException
+   *   When the destination cannot be renamed into place and copying it there
+   *   fails too.
    */
   public function extract(string $archive, string $destination): void {
     $path = $this->fileSystem->realpath($archive);
@@ -102,7 +105,42 @@ final class ZipExtractor {
     // `rename()` rather than the file system service's move: that one is for
     // files, and it renames around a collision rather than replacing.
     $this->fileSystem->deleteRecursive($destination);
-    rename($staging, $destination);
+    if (!@rename($staging, $destination)) {
+      // Some mounts cannot rename a directory — Pantheon's file system is one.
+      // Copy the staged files into place instead, so the destination is never
+      // left missing behind a staging directory nothing reads.
+      try {
+        $this->copyDirectory($staging, $destination);
+      }
+      finally {
+        $this->fileSystem->deleteRecursive($staging);
+      }
+    }
+  }
+
+  /**
+   * Copies a directory tree, stream URIs included.
+   *
+   * @throws \RuntimeException
+   *   When a directory or file cannot be written.
+   */
+  private function copyDirectory(string $source, string $destination): void {
+    if (!$this->fileSystem->prepareDirectory($destination, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+      throw new \RuntimeException(sprintf('Cannot create %s.', $destination));
+    }
+    foreach (scandir($source) ?: [] as $name) {
+      if ($name === '.' || $name === '..') {
+        continue;
+      }
+      $from = $source . '/' . $name;
+      $to = $destination . '/' . $name;
+      if (is_dir($from)) {
+        $this->copyDirectory($from, $to);
+      }
+      elseif (!copy($from, $to)) {
+        throw new \RuntimeException(sprintf('Cannot copy %s to %s.', $from, $to));
+      }
+    }
   }
 
 }

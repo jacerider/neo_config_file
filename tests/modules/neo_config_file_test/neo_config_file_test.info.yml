@@ -1,0 +1,6 @@
+name: 'Neo | Config File Test'
+type: module
+description: 'Test support for neo_config_file.'
+package: Testing
+hidden: true
+core_version_requirement: ^10.3 || ^11

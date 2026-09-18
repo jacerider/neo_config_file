@@ -1,5 +1,20 @@
 # Changelog
 
+## A package still lands when its directory cannot be renamed into place
+
+**`ZipExtractor::extract()` copies the staged files into place when the
+rename fails.** The extractor unpacks next to the destination, deletes the
+destination, and renames the staged directory into its place. Pantheon's file
+system cannot rename a directory, and the result of the rename was never
+checked, so every icon library or favicon package saved there since 1.0.30 was
+left as an unread `<destination>.neo-zip-*` directory with no destination at
+all — and neo_icon then reported the package as "not a recognized IcoMoon
+archive". When the rename fails the staged tree is now copied into the
+destination and the staging directory removed; if the copy fails too, the
+extractor throws instead of returning as if it had worked. Where rename works,
+nothing changes. Staging directories left behind by the old behaviour are not
+cleaned up automatically.
+
 ## A config import no longer aborts on a read-only codebase
 
 **`neo_config_file_module_preinstall()` leaves bundled files that are already
