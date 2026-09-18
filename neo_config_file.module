@@ -58,6 +58,13 @@ function neo_config_file_file_predelete(FileInterface $entity) {
 
 /**
  * Implements hook_module_preinstall().
+ *
+ * Copies the module's bundled files into the config directory, where its
+ * config entities expect them. A file already there with the same contents
+ * is left alone: that is the normal case when the module arrives through a
+ * config import, and on a host with a read-only codebase (Pantheon's test and
+ * live) the copy could not be written anyway. A file that cannot be written
+ * is logged and skipped rather than aborting the install.
  */
 function neo_config_file_module_preinstall($module) {
   $path = \Drupal::service('extension.list.module')->getPath($module) . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY . '/files';
@@ -66,8 +73,17 @@ function neo_config_file_module_preinstall($module) {
     $file_system = \Drupal::service('file_system');
     foreach ($file_system->scanDirectory($path, '/.*/') as $file) {
       $destination = ConfigFileInterface::CONFIG_URI . '/' . $file->filename;
+      if (file_exists($destination) && hash_file('sha256', $destination) === hash_file('sha256', $file->uri)) {
+        continue;
+      }
       $directory = dirname($destination);
-      $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+      if (!$file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+        \Drupal::logger('neo_config_file')->warning('%module ships %file, but the config directory is not writable, so it was not copied there. Export config where it is writable and deploy the file with the code.', [
+          '%module' => $module,
+          '%file' => $file->filename,
+        ]);
+        continue;
+      }
       $file_system->copy($file->uri, $destination, FileExists::Replace);
     }
   }
