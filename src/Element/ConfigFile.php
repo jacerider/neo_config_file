@@ -229,8 +229,14 @@ class ConfigFile extends ManagedFile {
     // still gets its own copy. Form-cache state is unreliable here because the
     // racing requests submit the same (pre-upload) form build id, so a
     // build-independent tempstore is used.
+    //
+    // The look-up and the save share a lock. The store only holds a file once
+    // it has been saved, so without one a request arriving mid-save finds
+    // nothing and saves a duplicate, or collides on core's per-destination lock
+    // and reports "File already locked for writing" instead.
     $dedupe_key = NULL;
     $fresh_upload = FALSE;
+    $lock_name = NULL;
     if (!empty($element['#filename'])) {
       $request = \Drupal::request();
       $all_files = $request->files->get('files', []);
@@ -241,13 +247,19 @@ class ConfigFile extends ManagedFile {
         if ($file->isValid()) {
           $store = \Drupal::service('tempstore.private')->get('neo_config_file');
           $dedupe_key = 'upload:' . $upload_name . ':' . hash_file('sha256', $file->getPathname());
+          $lock_name = static::acquireUploadLock('neo_config_file:' . $dedupe_key);
           $existing_fid = $store->get($dedupe_key);
           if ($existing_fid && File::load($existing_fid)) {
             // The same upload was already saved during this interaction. Reuse
             // it and drop the pending upload so the parent does not save it a
-            // second time.
+            // second time. The form rebuilds after this pass and runs this
+            // callback again with the upload gone from the request, so the file
+            // has to go in the user input too or that pass comes back empty.
             $input = is_array($input) ? $input : [];
             $input['fids'] = (string) $existing_fid;
+            $user_input = $form_state->getUserInput();
+            NestedArray::setValue($user_input, array_merge($element['#parents'], ['fids']), $input['fids']);
+            $form_state->setUserInput($user_input);
             unset($all_files[$upload_name]);
             $request->files->set('files', $all_files);
           }
@@ -286,12 +298,19 @@ class ConfigFile extends ManagedFile {
         }
       }
     }
-    $value = parent::valueCallback($element, $input, $form_state);
+    try {
+      $value = parent::valueCallback($element, $input, $form_state);
 
-    // Remember the fid produced by a fresh upload so an identical re-send in a
-    // racing request reuses it instead of saving a duplicate.
-    if ($fresh_upload && $dedupe_key && !empty($value['fids'])) {
-      \Drupal::service('tempstore.private')->get('neo_config_file')->set($dedupe_key, (int) reset($value['fids']));
+      // Remember the fid produced by a fresh upload so an identical re-send in
+      // a racing request reuses it instead of saving a duplicate.
+      if ($fresh_upload && $dedupe_key && !empty($value['fids'])) {
+        \Drupal::service('tempstore.private')->get('neo_config_file')->set($dedupe_key, (int) reset($value['fids']));
+      }
+    }
+    finally {
+      if ($lock_name) {
+        \Drupal::lock()->release($lock_name);
+      }
     }
 
     $value['cfids'] = [];
@@ -305,6 +324,27 @@ class ConfigFile extends ManagedFile {
       }
     }
     return $value;
+  }
+
+  /**
+   * Acquires the lock around saving an upload, waiting out a holder.
+   *
+   * A request that still cannot get the lock after waiting carries on without
+   * it, which is no worse than having no lock at all.
+   *
+   * @param string $name
+   *   The lock name.
+   *
+   * @return string|null
+   *   The lock name to release, or NULL if the lock was not acquired.
+   */
+  protected static function acquireUploadLock(string $name): ?string {
+    $lock = \Drupal::lock();
+    if ($lock->acquire($name)) {
+      return $name;
+    }
+    $lock->wait($name);
+    return $lock->acquire($name) ? $name : NULL;
   }
 
   /**
